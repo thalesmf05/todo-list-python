@@ -66,7 +66,7 @@ def show_options(prompt, options):
 
 # Flow to add a new task to the list
 def add_task_flow(to_do_list):
-     while True:
+    while True:
         new_task = input("Enter a task: ")
         if task_already_added(to_do_list, new_task):
             print("This task is already on the list!")
@@ -82,6 +82,7 @@ def add_task_flow(to_do_list):
             view_list(to_do_list)
         elif option == 3:
             break
+
 
 # Flow to mark a task as completed
 def mark_task_completed(to_do_list):
@@ -100,7 +101,7 @@ def mark_task_completed(to_do_list):
             elif option == 2:
                 view_list(to_do_list)
             elif option == 3:
-                break
+                show_main_menu()
 
 # Flow to remove a task from the list
 def remove_task(to_do_list):
@@ -124,7 +125,7 @@ def remove_task(to_do_list):
                 elif option == 2:
                     view_list(to_do_list)
                 elif option == 3:
-                    break
+                    show_main_menu()
             else:
                 print("No more tasks. Going back to main menu.")
                 break
@@ -140,20 +141,23 @@ def view_list(to_do_list):
         elif option == 2:
             remove_task(to_do_list)
         elif option == 3:
-            break
+            show_main_menu()
 
 # Display the main menu and control the app flow
 def show_main_menu():
-    to_do_list = load_tasks()
     while True:
+        to_do_list = load_tasks()
+
         option = show_options("----------- Menu -----------", ["View Tasks", "Add Task", "Exit"])
         if option == 1:
-            view_list(to_do_list)
+           view_list(to_do_list)
+           continue
         elif option == 2:
             add_task_flow(to_do_list)
         elif option == 3:
             print("Exiting program. Thank you!")
-            break
+            exit()
+
 
 # Start the program
 if __name__ == "__main__":

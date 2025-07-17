@@ -17,15 +17,10 @@ def load_tasks():
             return []
     return []
 
-# Pause execution so user can read messages
-def pause():
-    input("Press ENTER to continue...")
-
 # Print all tasks with status icons
 def show_to_do_list(to_do_list):
     if not to_do_list:
         print("No tasks added yet.")
-        pause()
         return False
     print("-------- To-Do List --------")
     for index, task in enumerate(to_do_list, start=1):
@@ -81,7 +76,7 @@ def add_task_flow(to_do_list):
         elif option == 2:
             view_list(to_do_list)
         elif option == 3:
-            break
+            show_main_menu()
 
 
 # Flow to mark a task as completed
@@ -128,7 +123,7 @@ def remove_task(to_do_list):
                     show_main_menu()
             else:
                 print("No more tasks. Going back to main menu.")
-                break
+                show_main_menu()
 
 # View task list and choose what to do with tasks
 def view_list(to_do_list):

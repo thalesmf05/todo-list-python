@@ -17,10 +17,15 @@ def load_tasks():
             return []
     return []
 
+#Pause the code for better user understanding
+def pause():
+    input("Press Enter to continue...")
+
 # Print all tasks with status icons
 def show_to_do_list(to_do_list):
     if not to_do_list:
         print("No tasks added yet.")
+        pause()
         return False
     print("-------- To-Do List --------")
     for index, task in enumerate(to_do_list, start=1):
@@ -138,20 +143,42 @@ def view_list(to_do_list):
         elif option == 3:
             show_main_menu()
 
+#Make sure user wants to exit the program
+def exit_confirmation():
+    exit_conf = input("Are you sure you want to exit the program? (yes/no): ").strip().lower()
+    if exit_conf in ["yes", "y"]:
+        print("\nThank you for using the To-Do List app. Goodbye!")
+        exit()
+    elif exit_conf in ["no", "n"]:
+        input("\nExit cancelled. Press ENTER to return to the main menu.")
+        show_main_menu()
+    else:
+        print("\nInvalid input. Please type 'yes' or 'no'.")
+        exit_confirmation()
+
+
 # Display the main menu and control the app flow
 def show_main_menu():
     while True:
         to_do_list = load_tasks()
 
-        option = show_options("----------- Menu -----------", ["View Tasks", "Add Task", "Exit"])
+        option = show_options("----------- Menu -----------", ["View Tasks", "Add Task","Complete Task","Remove Task", "Exit",])
         if option == 1:
            view_list(to_do_list)
            continue
         elif option == 2:
             add_task_flow(to_do_list)
         elif option == 3:
-            print("Exiting program. Thank you!")
-            exit()
+            if show_to_do_list(to_do_list):
+                mark_task_completed(to_do_list)
+        elif option == 4:
+            if show_to_do_list(to_do_list):
+                remove_task(to_do_list)
+        elif option == 5:
+            exit_confirmation()
+
+
+
 
 
 # Start the program

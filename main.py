@@ -41,14 +41,16 @@ def task_already_added(to_do_list, new_task):
     return False
 
 # Validate user input for menu options
-def user_input_validation(user_input, max_value, min_value):
+def user_input_validation(user_input, max_value, min_value, context):
     try:
         user_input = int(user_input)
         if not (min_value <= user_input <= max_value):
-            print("Invalid option. Please try again.")
+            if context != "remove":
+                print("Invalid option. Please try again.") #if been used in remove, it will not print the message
             return None
     except ValueError:
-        print("Invalid option. Please try again.")
+        if context != "remove": #if been used in remove, it will not print the message
+            print("Invalid option. Please try again.")
         return None
     else:
         return user_input
@@ -60,7 +62,7 @@ def show_options(prompt, options):
         print(f"{idx}. {opt}")
     while True:
         choice = input("Choose one: ")
-        validated = user_input_validation(choice, len(options), 1)
+        validated = user_input_validation(choice, len(options), 1, "menu")
         if validated is not None:
             return validated
 
@@ -90,7 +92,7 @@ def mark_task_completed(to_do_list):
         if not show_to_do_list(to_do_list):
             return
         mark_complete_input = input("Choose a task number to mark as completed: ")
-        mark_complete = user_input_validation(mark_complete_input, len(to_do_list), 1)
+        mark_complete = user_input_validation(mark_complete_input, len(to_do_list), 1, "complete")
         if mark_complete is not None:
             to_do_list[mark_complete - 1]["completed"] = True
             save_tasks(to_do_list)
@@ -102,28 +104,54 @@ def mark_task_completed(to_do_list):
                 view_list(to_do_list)
             elif option == 3:
                 show_main_menu()
+def collect_multiple_inputs(action, to_do_list):
+    try:
+        valid_indices = []
+        invalid_inputs = []
+        remove_option_input = input(f"Enter one or more task numbers to {action}, separated by space: ").strip().split()
+        for option in remove_option_input:
+            try:
+                validated = user_input_validation(option, len(to_do_list), 1, "remove")
+                if validated is not None:
+                    valid_indices.append(validated)
+                else:
+                    invalid_inputs.append(option)
+            except ValueError:
+                invalid_inputs.append(option)
+        if valid_indices:
+            return valid_indices, invalid_inputs
+        else:
+            print("Invalid input. Please enter a valid task number.")
+            return [], invalid_inputs
+    except Exception as e:
+        print("Invalid input. Please enter numbers only.")
+        return [], []
+
 
 # Flow to remove a task from the list
 def remove_task(to_do_list):
     while True:
         if not show_to_do_list(to_do_list):
             return
-        remove_option_input = input("Choose a task number to remove: ")
-        remove_option = user_input_validation(remove_option_input, len(to_do_list), 1)
-        if remove_option is not None:
-            confirm = input(f"Are you sure you want to remove '{to_do_list[remove_option - 1]['task']}'? (yes/no): ").strip().lower()
-            if confirm == "yes":
-                del to_do_list[remove_option - 1]
-                save_tasks(to_do_list)
-                print("Task removed!")
-            else:
+        valid_indices, invalid_inputs = collect_multiple_inputs("remove", to_do_list)
+        if valid_indices:
+            # Sort indices in descending order to avoid shifting issues
+            for remove_option in sorted(valid_indices, reverse=True):
+                confirm = input(f"Are you sure you want to remove '{to_do_list[remove_option - 1]['task']}'? (yes/no): ").strip().lower()
+                if confirm == "yes":
+                    del to_do_list[remove_option - 1]
+                    save_tasks(to_do_list)
+                    print("Task removed!")
+                elif confirm == "no":
+                    print("Task removal cancelled.")
+            if not valid_indices:
                 print("Removal cancelled.")
-            if to_do_list:
-                option = show_options("What next?", ["Remove another task", "View list", "Back to main menu"])
+            if len(to_do_list) >= 1:
+                option = show_options("What next?", ["View new list", "Remove another task", "Back to main menu"])
                 if option == 1:
-                    continue
-                elif option == 2:
                     view_list(to_do_list)
+                elif option == 2:
+                    continue
                 elif option == 3:
                     show_main_menu()
             else:

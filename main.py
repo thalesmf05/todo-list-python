@@ -6,6 +6,7 @@ def save_tasks(to_do_list):
     with open("tasks.json", "w") as file:
         json.dump(to_do_list, file)
 
+
 # Load the task list from a JSON file
 def load_tasks():
     if os.path.exists("tasks.json"):
@@ -17,9 +18,11 @@ def load_tasks():
             return []
     return []
 
+
 #Pause the code for better user understanding
 def pause():
     input("Press Enter to continue...")
+
 
 # Print all tasks with status icons
 def show_to_do_list(to_do_list):
@@ -40,6 +43,7 @@ def task_already_added(to_do_list, new_task):
             return True
     return False
 
+
 # Validate user input for menu options
 def user_input_validation(user_input, max_value, min_value, context):
     try:
@@ -55,6 +59,7 @@ def user_input_validation(user_input, max_value, min_value, context):
     else:
         return user_input
 
+
 # Display a list of options and return the chosen one
 def show_options(prompt, options):
     print(prompt)
@@ -65,6 +70,7 @@ def show_options(prompt, options):
         validated = user_input_validation(choice, len(options), 1, "menu")
         if validated is not None:
             return validated
+
 
 # Flow to add a new task to the list
 def add_task_flow(to_do_list):
@@ -86,24 +92,7 @@ def add_task_flow(to_do_list):
             show_main_menu()
 
 
-# Flow to mark a task as completed
-def mark_task_completed(to_do_list):
-    while True:
-        if not show_to_do_list(to_do_list):
-            return
-        mark_complete_input = input("Choose a task number to mark as completed: ")
-        mark_complete = user_input_validation(mark_complete_input, len(to_do_list), 1, "complete")
-        if mark_complete is not None:
-            to_do_list[mark_complete - 1]["completed"] = True
-            save_tasks(to_do_list)
-            print("Task marked as completed!")
-            option = show_options("What next?", ["Mark another", "View list", "Back to main menu"])
-            if option == 1:
-                continue
-            elif option == 2:
-                view_list(to_do_list)
-            elif option == 3:
-                show_main_menu()
+# Collect multiple inputs for marking or removing tasks
 def collect_multiple_inputs(action, to_do_list):
     try:
         valid_indices = []
@@ -128,6 +117,31 @@ def collect_multiple_inputs(action, to_do_list):
         return [], []
 
 
+# Flow to mark a task as completed
+def mark_task_completed(to_do_list):
+    while True:
+        if not show_to_do_list(to_do_list):
+            return
+        valid_indices, invalid_inputs = collect_multiple_inputs("complete", to_do_list)
+        for mark_complete in valid_indices:
+            if to_do_list[mark_complete - 1]["completed"]:
+                print(f"Task '{to_do_list[mark_complete - 1]['task']}' is already completed.")
+                continue
+            if mark_complete is not None:
+                to_do_list[mark_complete - 1]["completed"] = True
+                save_tasks(to_do_list)
+                print(f"Task '{to_do_list[mark_complete - 1]['task']}' marked as completed!")
+        if invalid_inputs:
+            print(f"Invalid inputs: {', '.join(invalid_inputs)}. Please try again.")
+        option = show_options("What next?", ["View New list", "Mark another", "Back to main menu"])
+        if option == 1:
+            view_list(to_do_list)
+        elif option == 2:
+            continue
+        elif option == 3:
+            show_main_menu()
+
+
 # Flow to remove a task from the list
 def remove_task(to_do_list):
     while True:
@@ -146,8 +160,11 @@ def remove_task(to_do_list):
                     print("Task removal cancelled.")
             if not valid_indices:
                 print("Removal cancelled.")
+            # If there are invalid inputs, inform the user 
+            if invalid_inputs:
+                print(f"Invalid inputs: {', '.join(invalid_inputs)}. Please try again.")
             if len(to_do_list) >= 1:
-                option = show_options("What next?", ["View new list", "Remove another task", "Back to main menu"])
+                option = show_options("What next?", ["View new list", "Remove another", "Back to main menu"])
                 if option == 1:
                     view_list(to_do_list)
                 elif option == 2:

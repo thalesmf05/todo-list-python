@@ -28,7 +28,6 @@ def pause():
 def show_to_do_list(to_do_list):
     if not to_do_list:
         print("No tasks added yet.")
-        pause()
         return False
     print("-------- To-Do List --------")
     for index, task in enumerate(to_do_list, start=1):
@@ -89,7 +88,7 @@ def add_task_flow(to_do_list):
         elif option == 2:
             view_list(to_do_list)
         elif option == 3:
-            show_main_menu()
+            return
 
 
 # Collect multiple inputs for marking or removing tasks
@@ -139,7 +138,7 @@ def mark_task_completed(to_do_list):
         elif option == 2:
             continue
         elif option == 3:
-            show_main_menu()
+            return
 
 
 # Flow to remove a task from the list
@@ -170,10 +169,10 @@ def remove_task(to_do_list):
                 elif option == 2:
                     continue
                 elif option == 3:
-                    show_main_menu()
+                    return
             else:
                 print("No more tasks. Going back to main menu.")
-                show_main_menu()
+                return
 
 # View task list and choose what to do with tasks
 def view_list(to_do_list):
@@ -190,40 +189,56 @@ def view_list(to_do_list):
 
 #Make sure user wants to exit the program
 def exit_confirmation():
-    exit_conf = input("Are you sure you want to exit the program? (yes/no): ").strip().lower()
-    if exit_conf in ["yes", "y"]:
-        print("\nThank you for using the To-Do List app. Goodbye!")
-        exit()
-    elif exit_conf in ["no", "n"]:
-        input("\nExit cancelled. Press ENTER to return to the main menu.")
-        show_main_menu()
-    else:
-        print("\nInvalid input. Please type 'yes' or 'no'.")
-        exit_confirmation()
+    while True:
+        exit_conf = input("Are you sure you want to exit the program? (yes/no): ").strip().lower()
+        if exit_conf in ["yes", "y"]:
+            print("\nThank you for using the To-Do List app. Goodbye!")
+            exit()
+        elif exit_conf in ["no", "n"]:
+            input("\nExit cancelled. Press ENTER to return to the main menu.")
+            show_main_menu()
+            break
+        else:
+            print("\nInvalid input. Please type 'yes' or 'no'.")
 
 
 # Display the main menu and control the app flow
 def show_main_menu():
+    to_do_list = load_tasks()
     while True:
-        to_do_list = load_tasks()
-
-        option = show_options("----------- Menu -----------", ["View Tasks", "Add Task","Complete Task","Remove Task", "Exit",])
-        if option == 1:
-           view_list(to_do_list)
-           continue
-        elif option == 2:
-            add_task_flow(to_do_list)
-        elif option == 3:
-            if show_to_do_list(to_do_list):
+        if not to_do_list:
+            option = show_options("----------- Menu -----------", ["Add Task", "Exit"])
+            if option == 1:
+                add_task_flow(to_do_list)
+            elif option == 2:
+                exit_confirmation()
+        else:
+            option = show_options("----------- Menu -----------", ["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
+            if option == 1:
+                view_list(to_do_list)
+            elif option == 2:
+                add_task_flow(to_do_list)
+            elif option == 3:
                 mark_task_completed(to_do_list)
-        elif option == 4:
-            if show_to_do_list(to_do_list):
+            elif option == 4:
                 remove_task(to_do_list)
-        elif option == 5:
-            exit_confirmation()
-
-
-
+            elif option == 5:
+                choice = input("Do you want to keep your tasks saved in 'tasks.json'? (yes/no): ").strip().lower()
+                if choice in ["no", "n"]:
+                    if os.path.exists("tasks.json"):
+                        try:
+                            if input("Press ENTER to confirm deletion of 'tasks.json': ").strip() == "":
+                                os.remove("tasks.json")
+                                print("tasks.json deleted.")
+                            else:
+                                print("Deletion cancelled.")
+                        except Exception as e:
+                            print(f"Error deleting file: {e}")
+                elif choice in ["yes", "y"]:
+                    print("Tasks will be kept.")
+                else:
+                    print("Invalid input. Please try again.")
+                exit_confirmation()
 
 
 # Start the program

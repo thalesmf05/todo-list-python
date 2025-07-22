@@ -88,7 +88,7 @@ def add_task_flow(to_do_list):
         elif option == 2:
             view_list(to_do_list)
         elif option == 3:
-            return
+            show_main_menu()
 
 
 # Collect multiple inputs for marking or removing tasks
@@ -138,7 +138,7 @@ def mark_task_completed(to_do_list):
         elif option == 2:
             continue
         elif option == 3:
-            return
+            show_main_menu()
 
 
 # Flow to remove a task from the list
@@ -172,7 +172,7 @@ def remove_task(to_do_list):
                     return
             else:
                 print("No more tasks. Going back to main menu.")
-                return
+                show_main_menu()
 
 # View task list and choose what to do with tasks
 def view_list(to_do_list):

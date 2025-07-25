@@ -5,7 +5,7 @@ import os
 
 
 # Validate user input for menu options
-def user_input_validation(user_input, max_index, min_index, context):
+def validate_user_input(user_input, max_index, min_index, context):
     try:
         user_input = int(user_input)
         if not (min_index <= user_input <= max_index):
@@ -49,13 +49,28 @@ class ToDoList:
         self.tasks.append(task)
 
     def remove_task(self,index):
-        
-        removed_task = self.tasks.pop(index - 1)
-        
+        RED = "\033[31m"
+        RESET = "\033[0m"
+
+        max_index = len(self.tasks)
+        remove_input = input("Choose one option to remove") #TODO create option to get more inputs at once 
+        index = validate_user_input(remove_input, max_index, 1, "remove")
+       
+        if index: # input is valid
+            task_to_remove = self.tasks[index - 1]
+            confirm = input(f"Press ENTER to {RED}delete{RESET} '{task_to_remove.description}', or any other key to cancel: ")
+            if confirm == "":
+                removed_task = self.tasks.pop(index - 1)
+                print(f"{removed_task} was removed!")
+            else:
+                print("Deletion cancelled")
+        else:
+            print("Invalid index. No tasks deleted")
+
 
 
     def complete_task(self,index):
-        pass
+        
     
     def show_tasks(self):
         if not self.tasks:
@@ -79,7 +94,7 @@ todo.add_task(t)
 todo.show_tasks()
 remove_input = input("choose one to remove: ")
 
-user_input_validation(remove_input,)
+
 
 
 

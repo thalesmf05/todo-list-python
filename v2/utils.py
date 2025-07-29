@@ -17,20 +17,28 @@ def pad_cell(text, width):
 
 # Valide user input          
 def validate_user_input(user_input, max_index, min_index, context):
-    try:
-        user_input = int(user_input)
-        if not (min_index <= user_input <= max_index):
-                if context != "remove":
-                    print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.") 
-                    return None
-                        
-                                 
-    except ValueError:
-        if context != "remove": #if been used in remove, it will not print the message
-            print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.")
-        return None
-    else:
-        return user_input
+    while True:
+        try:
+            if user_input == "":
+                return
+            else:
+                user_input = int(user_input)
+                if not (min_index <= user_input <= max_index):
+                        if context != "remove":
+                            print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.") 
+                            retry = input("Press ENTER to go back or type another option: ")
+                            user_input = retry 
+                            continue
+                                                        
+        except ValueError:
+            if context != "remove": #if been used in remove, it will not print the message
+                print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.")
+                retry = input("Press ENTER to go back or type another option: ")
+                user_input = retry 
+                continue
+        
+        else:
+            return user_input
         
 # Display a list of options and return the chosen one
 def show_options(prompt, question, options):
@@ -56,7 +64,7 @@ def show_main_menu(task_manager):
         if option == 1:
             print_task_table(task_manager.get_tasks())
 
-            option = show_options(None,"What next? ",["Add task","Complete Task", "Remove Task", "Go back"])
+            option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
             if option == 1:
                 handle_add(task_manager)
             elif option == 2:
@@ -179,7 +187,7 @@ def handle_remove(task_manager):
         else:
             print("Invalid index. No tasks deleted")
 
-def handle_complete(task_manager):
+def handle_complete(task_manager): #TODO conferir se a task ja esta completada
     GREEN = "\033[92m"
     RESET = "\033[0m"
     
@@ -194,6 +202,8 @@ def handle_complete(task_manager):
                 completed_task = task_manager.complete_task(index)
                 if completed_task is not None:
                     print(f"{task_to_complete.description} completed sucessifuly!!")
+                    task_manager.save_to_file("tasks.json")
+                    return
                 else:
                     print("UnUnexpected error. Action cancelled ")
             else:

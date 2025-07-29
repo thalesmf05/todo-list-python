@@ -26,16 +26,22 @@ def validate_user_input(user_input, max_index, min_index, context):
                 if not (min_index <= user_input <= max_index):
                         if context != "remove":
                             print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.") 
-                            retry = input("Press ENTER to go back or type another option: ")
-                            user_input = retry 
-                            continue
+                            if context != "show_main_menu":
+                                retry = input("Press ENTER to go back or type another option: ")
+                                user_input = retry 
+                                continue
+                            else:
+                                return
                                                         
         except ValueError:
             if context != "remove": #if been used in remove, it will not print the message
                 print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.")
-                retry = input("Press ENTER to go back or type another option: ")
-                user_input = retry 
-                continue
+                if context != "show_main_menu":
+                    retry = input("Press ENTER to go back or type another option: ")
+                    user_input = retry 
+                    continue
+                else:
+                    return
         
         else:
             return user_input
@@ -46,13 +52,9 @@ def show_options(prompt, question, options):
         print(prompt)
     for idx, opt in enumerate(options, 1):
         print(f"{idx}. {opt}")
-    while True:
-        choice = input(question)
-        validated = validate_user_input(choice, len(options), 1, "show_options")
-        if validated is not None:
-            return validated
-
-
+    #while True:
+    choice = input(question)
+    return choice
         
 # Validate user input for menu options
 def show_main_menu(task_manager):
@@ -60,28 +62,31 @@ def show_main_menu(task_manager):
     while True:
         to_do_list = task_manager.get_tasks()
         option = show_options("----------- Menu -----------", "Choose one: ",["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
-        
-        if option == 1:
+        valid_option = validate_user_input(option, 5, 1, "show_main_menu")
+        if valid_option == 1:
             print_task_table(task_manager.get_tasks())
 
             option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
-            if option == 1:
+            valid_option = validate_user_input(option, 4, 1, "after_view_list")
+            if valid_option == 1:
                 handle_add(task_manager)
-            elif option == 2:
+            elif valid_option == 2:
                 handle_complete(task_manager)
-            elif option == 3:
+            elif valid_option == 3:
                 handle_remove(task_manager)
-            elif option == 4:
+            elif valid_option == 4:
                 show_main_menu(task_manager)
 
-        elif option == 2:
+        elif valid_option == 2:
             handle_add(task_manager)
-        elif option == 3:
+        elif valid_option == 3:
+            print_task_table(task_manager.get_tasks())
             handle_complete(task_manager)
-        elif option == 4:
+        elif valid_option == 4:
+            print_task_table(task_manager.get_tasks())
             handle_remove(task_manager) 
-        elif option == 5:
-            print("exit app") #TODO exit app
+        elif valid_option == 5:
+            print("create exit app") #TODO exit app
 
 def print_task_table(tasks):
     # Defina as larguras das colunas (ajuste se quiser)
@@ -123,7 +128,17 @@ def print_task_table(tasks):
     # 6. Rodapé
     print("+" + "+".join("-" * w for w in col_widths) + "+")
 
-
+def handle_post_view_options(task_manager):
+    option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
+    valid_option = validate_user_input(option, 4, 1, "after_view_list")
+    if valid_option == 1:
+        handle_add(task_manager)
+    elif valid_option == 2:
+        handle_complete(task_manager)
+    elif valid_option == 3:
+        handle_remove(task_manager)
+    elif valid_option == 4:
+        show_main_menu(task_manager)                                     
 
 def handle_add(task_manager):
       while True:
@@ -157,12 +172,18 @@ def handle_add(task_manager):
                     print(f"Error while adding the task : {e}")
                 else:
                     option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
-                    if option == 1:
-                        handle_add(task_manager)
-                    elif option == 2: 
-                        print("Fazer parte do view")
-                    elif option == 3:
+                    valid_option = validate_user_input(option, 3, 1, "after_add_task")
+                    if valid_option == 1:
+                        break
+                    
+                    elif valid_option == 2: 
+                        print_task_table(task_manager.get_tasks())
+                        handle_post_view_options(task_manager)
+
+                    elif valid_option == 3:
+                        print("here")
                         return
+
 
 def handle_remove(task_manager):
     RED = "\033[31m"
@@ -180,6 +201,19 @@ def handle_remove(task_manager):
                 removed_task = task_manager.remove_task(index)
                 if removed_task is not None:
                     print(f"{task_to_remove.description} was removed!")
+
+                    option = show_options(None, "What Next? ",["Remove another", "View list", "Back to main menu"])
+                    valid_option = validate_user_input(option, 3, 1, "after_remove_task")
+
+                    if valid_option == 1:
+                        print_task_table(task_manager.get_tasks())
+                        continue
+                    elif valid_option == 2:
+                        print_task_table(task_manager.get_tasks())
+
+                    elif valid_option == 3:
+                        return
+
                 else:
                     print("Unexpected error. Removal cancelled")
             else:

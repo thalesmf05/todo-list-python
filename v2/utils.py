@@ -8,7 +8,6 @@ from wcwidth import wcswidth
 from v2 import task_manager
 
 def pad_cell(text, width):
-    """Alinha texto centralizado de acordo com a largura VISUAL (não só len())."""
     visual_width = wcswidth(text)
     pad = width - visual_width
     left = pad // 2
@@ -141,48 +140,53 @@ def handle_post_view_options(task_manager):
         show_main_menu(task_manager)                                     
 
 def handle_add(task_manager):
-      while True:
+    """
+    Handles adding a new task.
+    Permite múltiplas tentativas caso a tarefa já exista e oferece opções ao usuário ao final.
+    Sai ao pressionar ENTER em qualquer input de task.
+    """
+    while True:
+        # 1. Peça a descrição da tarefa
         new_task = input("Enter a task: ").strip()
-        
         if new_task == "":
-            print("You must enter something!")
-            continue
+            # Usuário apertou ENTER para sair
+            return
 
+        # 2. Checa duplicidade (enquanto a tarefa já existir)
+        while any(t.description.lower().strip() == new_task.lower() for t in task_manager.get_tasks()):
+            print("This task is already on the list.")
+            retry = input("Press ENTER to go back or type a new task: ").strip()
+            if retry == "":
+                # Usuário desistiu, volta ao menu
+                return
+            new_task = retry  # Tenta novamente com o novo valor
+
+        # 3. Agora temos uma task nova!
+        try:
+            task = Task(new_task, False, datetime.datetime.now())
+            task_manager.add_task(task)
+            task_manager.save_to_file("tasks.json")
+            print(f"Task '{new_task}' added!")
+        except Exception as e:
+            print(f"Error while adding the task: {e}")
+            return  # Se deu erro inesperado, retorna para o menu principal
+
+        # 4. Oferece as opções pós-adicionar
         while True:
-            exists = any(task.description.lower().strip() == new_task.lower() for task in task_manager.get_tasks())
-            
-            if exists:
-                print("This task is already on the list.")
-                retry =  input("Press ENTER to go back or type a new task: ").strip()
+            option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
+            valid_option = validate_user_input(option, 3, 1, "after_add_task")
 
-                if retry == "":
-                   return 
-                else:
-                    new_task = retry
-                    continue
-            
-            else:
-                try:
-                    task = Task(new_task, False, datetime.datetime.now())
-                    task_manager.add_task(task)
-                    task_manager.save_to_file("tasks.json")
-                    print(f"Task '{new_task}' addded!")
-                    
-                except Exception as e:
-                    print(f"Error while adding the task : {e}")
-                else:
-                    option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
-                    valid_option = validate_user_input(option, 3, 1, "after_add_task")
-                    if valid_option == 1:
-                        break
-                    
-                    elif valid_option == 2: 
-                        print_task_table(task_manager.get_tasks())
-                        handle_post_view_options(task_manager)
-
-                    elif valid_option == 3:
-                        print("here")
-                        return
+            if valid_option == 1:
+                # Volta para o começo do loop externo para adicionar outra
+                break
+            elif valid_option == 2:
+                # Mostra a tabela e chama o menu de ações pós-view
+                print_task_table(task_manager.get_tasks())
+                handle_post_view_options(task_manager)
+                return  # Depois de ver lista, volta ao menu principal
+            elif valid_option == 3:
+                # Volta ao menu principal
+                return
 
 
 def handle_remove(task_manager):

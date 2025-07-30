@@ -138,6 +138,7 @@ def handle_post_view_options(task_manager):
     elif valid_option == 4:
         show_main_menu(task_manager)                                     
 
+
 def handle_add(task_manager):
     """
     Handles adding a new task.
@@ -208,11 +209,10 @@ def handle_remove(task_manager):
                     valid_option = validate_user_input(option, 3, 1, "after_remove_task")
 
                     if valid_option == 1:
-                        print_task_table(task_manager.get_tasks())
                         continue
                     elif valid_option == 2:
                         print_task_table(task_manager.get_tasks())
-
+                        handle_post_view_options(task_manager)
                     elif valid_option == 3:
                         return
 
@@ -239,7 +239,19 @@ def handle_complete(task_manager): #TODO conferir se a task ja esta completada
                 if completed_task is not None:
                     print(f"{task_to_complete.description} completed sucessifuly!!")
                     task_manager.save_to_file("tasks.json")
-                    return
+                    
+                    option = show_options(None, "What Next? ",["Complete another", "View list", "Back to main menu"])
+                    valid_option = validate_user_input(option, 3, 1, "after_remove_task")
+
+                    if valid_option == 1:
+                        continue
+
+                    elif valid_option == 2:
+                        print_task_table(task_manager.get_tasks())
+                        handle_post_view_options(task_manager)
+                    elif valid_option == 3:
+                        return
+                    
                 else:
                     print("UnUnexpected error. Action cancelled ")
             else:

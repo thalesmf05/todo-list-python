@@ -4,7 +4,6 @@ from .task import Task
 from .task_manager import TaskManager
 from v2 import task
 from wcwidth import wcswidth
-
 from v2 import task_manager
 
 def pad_cell(text, width):
@@ -85,7 +84,7 @@ def show_main_menu(task_manager):
             print_task_table(task_manager.get_tasks())
             handle_remove(task_manager) 
         elif valid_option == 5:
-            print("create exit app") #TODO exit app
+            handle_exit(task_manager)
 
 def print_task_table(tasks):
     # Defina as larguras das colunas (ajuste se quiser)
@@ -157,8 +156,7 @@ def handle_add(task_manager):
             print("This task is already on the list.")
             retry = input("Press ENTER to go back or type a new task: ").strip()
             if retry == "":
-                # Usuário desistiu, volta ao menu
-                return
+                return  # Usuário desistiu, volta ao menu
             new_task = retry  # Tenta novamente com o novo valor
 
         # 3. Agora temos uma task nova!
@@ -249,3 +247,40 @@ def handle_complete(task_manager): #TODO conferir se a task ja esta completada
         else:
             print("Invalid index. No tasks completed")
 
+def handle_exit(task_manager):
+    if task_manager.get_tasks():          
+        save_tasks = input("Do you want to keep your tasks saved? (yes/no)").strip().lower()
+        while True:    
+            if save_tasks.startswith("y"):
+                try:
+                    task_manager.save_to_file("tasks.json")
+                    print(f"{len(task_manager.get_tasks())} tasks were saved to 'tasks.json'")
+                    
+                except Exception as e:
+                    print("Error while saving tasks.")
+                print("Thanks for using my terminal app. See you next time!") 
+                exit()
+            
+            if save_tasks.startswith("n"):
+                try: 
+                    task_manager.tasks = []  # esvazia a lista de tarefas
+                    task_manager.save_to_file("tasks.json")  # salva a lista vazia no arquivo
+                    print("All tasks deleted!")
+                except Exception as e:
+                    print("Error while deleting tasks.")
+                print("Thanks for using my terminal app. See you next time!") 
+                exit()
+
+            else:
+                save_tasks = input("Invalid input. Type (yes/no) or press ENTER to exit program: ")
+                if save_tasks == "":
+                    print("Thanks for using my terminal app. See you next time!")  
+                    exit()  
+                else:
+                    continue  
+    else: 
+        print("Thanks for using my terminal app. See you next time!")    
+        exit()
+
+
+            

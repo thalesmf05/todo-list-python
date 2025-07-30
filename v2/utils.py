@@ -1,4 +1,3 @@
-from ast import Return
 import datetime
 from .task import Task
 from .task_manager import TaskManager
@@ -19,30 +18,26 @@ def validate_user_input(user_input, max_index, min_index, context):
         try:
             if user_input == "":
                 return
-            else:
-                user_input = int(user_input)
-                if not (min_index <= user_input <= max_index):
-                        if context != "remove":
-                            print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.") 
-                            if context != "show_main_menu":
-                                retry = input("Press ENTER to go back or type another option: ")
-                                user_input = retry 
-                                continue
-                            else:
-                                return
-                                                        
-        except ValueError:
-            if context != "remove": #if been used in remove, it will not print the message
-                print(f"Invalid option. Please only number beetwen {min_index} - {max_index}.")
-                if context != "show_main_menu":
-                    retry = input("Press ENTER to go back or type another option: ")
-                    user_input = retry 
-                    continue
-                else:
+            user_input = int(user_input)
+
+            if not (min_index <= user_input <= max_index):
+                print(f"Invalid option. Please only enter a number between {min_index} and {max_index}.")
+                retry = input("Press ENTER to go back or type another option: ")
+                if retry == "":
                     return
-        
-        else:
-            return user_input
+                user_input = retry
+                continue
+
+        except ValueError:
+            print(f"Invalid input. Please enter a valid number between {min_index} and {max_index}.")
+            retry = input("Press ENTER to go back or type another option: ")
+            if retry == "":
+                return
+            user_input = retry
+            continue
+
+        return user_input
+
         
 # Display a list of options and return the chosen one
 def show_options(prompt, question, options):
@@ -186,7 +181,6 @@ def handle_add(task_manager):
             elif valid_option == 3:
                 # Volta ao menu principal
                 return
-
 
 def handle_remove(task_manager):
     RED = "\033[31m"

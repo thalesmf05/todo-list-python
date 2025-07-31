@@ -1,19 +1,28 @@
-import datetime
-from .task import Task
-from .task_manager import TaskManager
-from v2 import task
+import datetime 
+from task import Task
+from task_manager import TaskManager
 from wcwidth import wcswidth
-from v2 import task_manager
+import os 
+
+# Path to the JSON file where tasks are stored.
+json_path = os.path.join(os.path.dirname(__file__), "tasks.json")
 
 def pad_cell(text, width):
+    """
+    Centers text within a given width using spaces. Useful for aligning table columns.
+    """
     visual_width = wcswidth(text)
     pad = width - visual_width
     left = pad // 2
     right = pad - left
     return " " * left + text + " " * right
 
-# Valide user input          
 def validate_user_input(user_input, max_index, min_index, context):
+    """
+    Validates that user input is a number within the allowed range.
+    Handles empty input and provides feedback for invalid entries.
+    Used throughout the app to ensure robust user experience.
+    """
     while True:
         try:
             if user_input == "":
@@ -38,20 +47,24 @@ def validate_user_input(user_input, max_index, min_index, context):
 
         return user_input
 
-        
-# Display a list of options and return the chosen one
 def show_options(prompt, question, options):
+    """
+    Displays a list of numbered options and prompts user for selection.
+    Returns the raw user input (to be validated later).
+    """
     if prompt is not None:
         print(prompt)
     for idx, opt in enumerate(options, 1):
         print(f"{idx}. {opt}")
-    #while True:
     choice = input(question)
     return choice
-        
-# Validate user input for menu options
+
 def show_main_menu(task_manager):
-       
+    """
+    Main navigation menu for the app.
+    Loops until the user chooses to exit, showing all main options.
+    Delegates actions to other handler functions.
+    """
     while True:
         to_do_list = task_manager.get_tasks()
         option = show_options("----------- Menu -----------", "Choose one: ",["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
@@ -82,26 +95,25 @@ def show_main_menu(task_manager):
             handle_exit(task_manager)
 
 def print_task_table(tasks):
-    # Defina as larguras das colunas (ajuste se quiser)
+    """
+    Pretty-prints the list of tasks in a formatted table.
+    Shows: Number, Task description, Status, Created at, and Deadline (if present).
+    Uses pad_cell() for column alignment.
+    """
     col_widths = [4, 19, 8, 21, 10]  # No, Task, Status, Created at, Deadline
     table_width = sum(col_widths) + len(col_widths) + 1
 
-    # 1. Título centralizado
     title = "TO-DO LIST MANAGER"
     print("\n" + title.center(table_width))
 
-    # 2. Linha do topo
     print("+" + "+".join("-" * w for w in col_widths) + "+")
 
-    # 3. Cabeçalho
     headers = ["No", "Task", "Status", "Created at", "Deadline"]
     header_cells = [pad_cell(h, w) for h, w in zip(headers, col_widths)]
     print("|" + "|".join(header_cells) + "|")
 
-    # 4. Linha separadora
     print("+" + "+".join("-" * w for w in col_widths) + "+")
 
-    # 5. Corpo da tabela
     if not tasks:
         empty = "No tasks found."
         print("|" + pad_cell(empty, table_width - 2) + "|")
@@ -109,6 +121,7 @@ def print_task_table(tasks):
         for idx, task in enumerate(tasks, 1):
             status = "❌" if not task.completed else "✅"
             created = task.time.strftime("%Y-%m-%d %H:%M")
+            # 'deadline' is optional for future extensibility
             deadline = getattr(task, "deadline", "---") or "---"
             cells = [
                 pad_cell(str(idx), col_widths[0]),
@@ -118,10 +131,12 @@ def print_task_table(tasks):
                 pad_cell(str(deadline), col_widths[4])
             ]
             print("|" + "|".join(cells) + "|")
-    # 6. Rodapé
     print("+" + "+".join("-" * w for w in col_widths) + "+")
 
 def handle_post_view_options(task_manager):
+    """
+    Presents post-list options to the user after viewing the table.
+    """
     option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
     valid_option = validate_user_input(option, 4, 1, "after_view_list")
     if valid_option == 1:
@@ -133,65 +148,62 @@ def handle_post_view_options(task_manager):
     elif valid_option == 4:
         show_main_menu(task_manager)                                     
 
-
 def handle_add(task_manager):
     """
-    Handles adding a new task.
-    Permite múltiplas tentativas caso a tarefa já exista e oferece opções ao usuário ao final.
-    Sai ao pressionar ENTER em qualquer input de task.
+    Handles the process of adding a new task.
+    Checks for duplicates and allows the user to add multiple tasks in sequence.
+    Saves to disk after each addition.
     """
     while True:
-        # 1. Peça a descrição da tarefa
         new_task = input("Enter a task: ").strip()
         if new_task == "":
-            # Usuário apertou ENTER para sair
+            # User pressed ENTER to exit
             return
 
-        # 2. Checa duplicidade (enquanto a tarefa já existir)
+        # Prevents adding duplicate tasks (case insensitive, whitespace ignored)
         while any(t.description.lower().strip() == new_task.lower() for t in task_manager.get_tasks()):
             print("This task is already on the list.")
             retry = input("Press ENTER to go back or type a new task: ").strip()
             if retry == "":
-                return  # Usuário desistiu, volta ao menu
-            new_task = retry  # Tenta novamente com o novo valor
+                return
+            new_task = retry
 
-        # 3. Agora temos uma task nova!
         try:
             task = Task(new_task, False, datetime.datetime.now())
             task_manager.add_task(task)
-            task_manager.save_to_file("tasks.json")
+            task_manager.save_to_file(json_path)
             print(f"Task '{new_task}' added!")
         except Exception as e:
             print(f"Error while adding the task: {e}")
-            return  # Se deu erro inesperado, retorna para o menu principal
+            return
 
-        # 4. Oferece as opções pós-adicionar
         while True:
             option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
             valid_option = validate_user_input(option, 3, 1, "after_add_task")
 
             if valid_option == 1:
-                # Volta para o começo do loop externo para adicionar outra
-                break
+                break  # Start loop again to add another
             elif valid_option == 2:
-                # Mostra a tabela e chama o menu de ações pós-view
                 print_task_table(task_manager.get_tasks())
                 handle_post_view_options(task_manager)
-                return  # Depois de ver lista, volta ao menu principal
+                return
             elif valid_option == 3:
-                # Volta ao menu principal
                 return
 
 def handle_remove(task_manager):
+    """
+    Handles removing tasks from the list.
+    Confirms removal and offers next steps after each removal.
+    """
     RED = "\033[31m"
     RESET = "\033[0m"
     
     while True:
         max_index = len(task_manager.get_tasks())
-        remove_input = input("Choose one option to remove: ") #TODO create option to get more inputs at once 
+        remove_input = input("Choose one option to remove: ") #TODO: support removing multiple at once
         index = validate_user_input(remove_input, max_index, 1, "remove")
         
-        if index is not None: # input is valid
+        if index is not None:
             task_to_remove = task_manager.tasks[index - 1]
             confirm = input(f"Press ENTER to {RED}delete{RESET} '{task_to_remove.description}', or any other key to cancel: ")
             if confirm == "":
@@ -209,21 +221,29 @@ def handle_remove(task_manager):
                         handle_post_view_options(task_manager)
                     elif valid_option == 3:
                         return
+                    else:
+                        return
 
                 else:
                     print("Unexpected error. Removal cancelled")
             else:
                 print("Deletion cancelled")
         else:
-            print("Invalid index. No tasks deleted")
+            if valid_option != "":
+                print("Invalid index. No tasks deleted")
+            return
 
-def handle_complete(task_manager): #TODO conferir se a task ja esta completada
+def handle_complete(task_manager):
+    """
+    Handles marking tasks as completed.
+    Confirms completion and saves the update to disk.
+    """
     GREEN = "\033[92m"
     RESET = "\033[0m"
     
     while True: 
         max_index = len(task_manager.get_tasks())
-        complete_input = input("Choose one to mark as completed: ") #TODO same as remove_tasks
+        complete_input = input("Choose one to mark as completed: ") #TODO: support marking multiple at once
         index = validate_user_input(complete_input, max_index, 1, "complete")
         if index is not None:
             task_to_complete = task_manager.tasks[index - 1]
@@ -231,8 +251,8 @@ def handle_complete(task_manager): #TODO conferir se a task ja esta completada
             if confirm == "":
                 completed_task = task_manager.complete_task(index)
                 if completed_task is not None:
-                    print(f"{task_to_complete.description} completed sucessifuly!!")
-                    task_manager.save_to_file("tasks.json")
+                    print(f"{task_to_complete.description} completed successfully!!")
+                    task_manager.save_to_file(json_path)
                     
                     option = show_options(None, "What Next? ",["Complete another", "View list", "Back to main menu"])
                     valid_option = validate_user_input(option, 3, 1, "after_remove_task")
@@ -245,21 +265,30 @@ def handle_complete(task_manager): #TODO conferir se a task ja esta completada
                         handle_post_view_options(task_manager)
                     elif valid_option == 3:
                         return
+                    else:
+                        return
                     
                 else:
-                    print("UnUnexpected error. Action cancelled ")
+                    print("Unexpected error. Action cancelled ")
             else:
                 print("Action cancelled")
         else:
-            print("Invalid index. No tasks completed")
+            if valid_option != "":
+                print("Invalid index. No tasks completed")
+            return
 
 def handle_exit(task_manager):
+    """
+    Handles application exit.
+    Prompts the user to save or delete tasks before quitting the program.
+    Ensures persistent storage is updated on exit.
+    """
     if task_manager.get_tasks():          
         save_tasks = input("Do you want to keep your tasks saved? (yes/no)").strip().lower()
         while True:    
             if save_tasks.startswith("y"):
                 try:
-                    task_manager.save_to_file("tasks.json")
+                    task_manager.save_to_file(json_path)
                     print(f"{len(task_manager.get_tasks())} tasks were saved to 'tasks.json'")
                     
                 except Exception as e:
@@ -269,8 +298,8 @@ def handle_exit(task_manager):
             
             if save_tasks.startswith("n"):
                 try: 
-                    task_manager.tasks = []  # esvazia a lista de tarefas
-                    task_manager.save_to_file("tasks.json")  # salva a lista vazia no arquivo
+                    task_manager.tasks = []  # clears the task list
+                    task_manager.save_to_file(json_path)  # saves the empty list
                     print("All tasks deleted!")
                 except Exception as e:
                     print("Error while deleting tasks.")
@@ -287,6 +316,7 @@ def handle_exit(task_manager):
     else: 
         print("Thanks for using my terminal app. See you next time!")    
         exit()
+
 
 
             

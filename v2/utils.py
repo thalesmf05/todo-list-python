@@ -1,9 +1,11 @@
-import datetime 
+from curses import raw
+import datetime
+from encodings.punycode import T 
 from task import Task
 from task_manager import TaskManager
-from wcwidth import wcswidth
+from wcwidth import wcswidth 
 import os 
-
+#TODO depois de deletar todas as tasks bug 
 # Path to the JSON file where tasks are stored.
 json_path = os.path.join(os.path.dirname(__file__), "tasks.json")
 
@@ -17,37 +19,72 @@ def pad_cell(text, width):
     right = pad - left
     return " " * left + text + " " * right
 
-def validate_user_input(user_input, max_index, min_index, context):
-    """
-    Validates that user input is a number within the allowed range.
-    Handles empty input and provides feedback for invalid entries.
-    Used throughout the app to ensure robust user experience.
-    """
-    while True:
-        try:
-            if user_input == "":
-                return
-            user_input = int(user_input)
+def validate_single_input(user_input, max_index, min_index):
+    try:
+        user_input = int(user_input)
+        if not (min_index <= user_input <= max_index):
+            return None
+    except ValueError: 
+        return None
+    
+    return user_input
+           
+def get_valid_single_input(max_index, min_index):
+    first_try = True 
 
-            if not (min_index <= user_input <= max_index):
-                print(f"Invalid option. Please only enter a number between {min_index} and {max_index}.")
-                retry = input("Press ENTER to go back or type another option: ")
-                if retry == "":
-                    return
-                user_input = retry
-                continue
-
-        except ValueError:
-            print(f"Invalid input. Please enter a valid number between {min_index} and {max_index}.")
-            retry = input("Press ENTER to go back or type another option: ")
-            if retry == "":
-                return
-            user_input = retry
+    while True:        
+        if first_try:
+            user_input = input(f"Choose one option: ").strip()
+        
+        if user_input == "":
+            print("You must enter something!")
             continue
 
-        return user_input
+        
+        index = validate_single_input(user_input,max_index, min_index)
+        if index is not None:
+            return index
+        else: 
+            print(f"Invalid input. Please enter a number between {min_index}-{max_index}")
+            retry = input("Press ENTER to go back or type another option: ").strip()
+            if retry == "":
+                return None
+            user_input = retry
+            first_try = False
 
-def show_options(prompt, question, options):
+        
+        
+        
+
+def get_multiple_inputs(task_manager):
+    valid_inputs = []
+    invalid_inputs = []
+    while True:
+        try:
+            raw_user_input = input(f"Choose one or more options, separated by commas: ").strip()
+            
+            if not raw_user_input:
+                print("You must enter something. ")
+        
+            user_input = raw_user_input.split(",")
+                
+            for i in user_input:
+                index = validate_single_input(i.strip(), len(task_manager.get_tasks()), 1)
+
+                if index is not None:
+                    valid_inputs.append(index)
+                else:
+                    invalid_inputs.append(i)
+        except: 
+            print("Unexpected error")      
+
+        break
+    
+    return valid_inputs,invalid_inputs
+
+    
+
+def show_options(prompt, options):
     """
     Displays a list of numbered options and prompts user for selection.
     Returns the raw user input (to be validated later).
@@ -56,8 +93,7 @@ def show_options(prompt, question, options):
         print(prompt)
     for idx, opt in enumerate(options, 1):
         print(f"{idx}. {opt}")
-    choice = input(question)
-    return choice
+    return
 
 def show_main_menu(task_manager):
     """
@@ -67,31 +103,20 @@ def show_main_menu(task_manager):
     """
     while True:
         to_do_list = task_manager.get_tasks()
-        option = show_options("----------- Menu -----------", "Choose one: ",["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
-        valid_option = validate_user_input(option, 5, 1, "show_main_menu")
-        if valid_option == 1:
+        option = show_options("----------- Menu -----------",["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
+        valid_index = get_valid_single_input(task_manager, 5, 1)
+        if valid_index == 1:
             print_task_table(task_manager.get_tasks())
-
-            option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
-            valid_option = validate_user_input(option, 4, 1, "after_view_list")
-            if valid_option == 1:
-                handle_add(task_manager)
-            elif valid_option == 2:
-                handle_complete(task_manager)
-            elif valid_option == 3:
-                handle_remove(task_manager)
-            elif valid_option == 4:
-                show_main_menu(task_manager)
-
-        elif valid_option == 2:
+            handle_post_view_options(task_manager)
+        elif valid_index == 2:
             handle_add(task_manager)
-        elif valid_option == 3:
+        elif valid_index == 3:
             print_task_table(task_manager.get_tasks())
             handle_complete(task_manager)
-        elif valid_option == 4:
+        elif valid_index == 4:
             print_task_table(task_manager.get_tasks())
             handle_remove(task_manager) 
-        elif valid_option == 5:
+        elif valid_index == 5:
             handle_exit(task_manager)
 
 def print_task_table(tasks):
@@ -137,15 +162,15 @@ def handle_post_view_options(task_manager):
     """
     Presents post-list options to the user after viewing the table.
     """
-    option = show_options(None,"Choose one:  ",["Add task","Complete Task", "Remove Task", "Go back"])
-    valid_option = validate_user_input(option, 4, 1, "after_view_list")
-    if valid_option == 1:
+    option = show_options(None,["Add task","Complete Task", "Remove Task", "Go back"])
+    valid_index = get_valid_single_input(task_manager, 4, 1)
+    if valid_index == 1:
         handle_add(task_manager)
-    elif valid_option == 2:
+    elif valid_index == 2:
         handle_complete(task_manager)
-    elif valid_option == 3:
+    elif valid_index == 3:
         handle_remove(task_manager)
-    elif valid_option == 4:
+    elif valid_index == 4:
         show_main_menu(task_manager)                                     
 
 def handle_add(task_manager):
@@ -179,15 +204,15 @@ def handle_add(task_manager):
 
         while True:
             option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
-            valid_option = validate_user_input(option, 3, 1, "after_add_task")
+            valid_index = validate_single_input(option, 3, 1, "after_add_task")
 
-            if valid_option == 1:
+            if valid_index == 1:
                 break  # Start loop again to add another
-            elif valid_option == 2:
+            elif valid_index == 2:
                 print_task_table(task_manager.get_tasks())
                 handle_post_view_options(task_manager)
                 return
-            elif valid_option == 3:
+            elif valid_index == 3:
                 return
 
 def handle_remove(task_manager):
@@ -200,8 +225,7 @@ def handle_remove(task_manager):
     
     while True:
         max_index = len(task_manager.get_tasks())
-        remove_input = input("Choose one option to remove: ") #TODO: support removing multiple at once
-        index = validate_user_input(remove_input, max_index, 1, "remove")
+        validate_multiple_indices(task_manager,"multiple_inputs")
         
         if index is not None:
             task_to_remove = task_manager.tasks[index - 1]
@@ -212,14 +236,14 @@ def handle_remove(task_manager):
                     print(f"{task_to_remove.description} was removed!")
 
                     option = show_options(None, "What Next? ",["Remove another", "View list", "Back to main menu"])
-                    valid_option = validate_user_input(option, 3, 1, "after_remove_task")
+                    valid_index = validate_single_input(option, 3, 1, "after_remove_task")
 
-                    if valid_option == 1:
+                    if valid_index == 1:
                         continue
-                    elif valid_option == 2:
+                    elif valid_index == 2:
                         print_task_table(task_manager.get_tasks())
                         handle_post_view_options(task_manager)
-                    elif valid_option == 3:
+                    elif valid_index == 3:
                         return
                     else:
                         return
@@ -229,7 +253,7 @@ def handle_remove(task_manager):
             else:
                 print("Deletion cancelled")
         else:
-            if valid_option != "":
+            if valid_index != "":
                 print("Invalid index. No tasks deleted")
             return
 
@@ -244,7 +268,7 @@ def handle_complete(task_manager):
     while True: 
         max_index = len(task_manager.get_tasks())
         complete_input = input("Choose one to mark as completed: ") #TODO: support marking multiple at once
-        index = validate_user_input(complete_input, max_index, 1, "complete")
+        index = validate_single_input(complete_input, max_index, 1, "complete")
         if index is not None:
             task_to_complete = task_manager.tasks[index - 1]
             confirm = input(f"Press ENTER to {GREEN}complete{RESET} '{task_to_complete.description}', or any other key to cancel: ")
@@ -255,15 +279,15 @@ def handle_complete(task_manager):
                     task_manager.save_to_file(json_path)
                     
                     option = show_options(None, "What Next? ",["Complete another", "View list", "Back to main menu"])
-                    valid_option = validate_user_input(option, 3, 1, "after_remove_task")
+                    valid_index = validate_single_input(option, 3, 1, "after_remove_task")
 
-                    if valid_option == 1:
+                    if valid_index == 1:
                         continue
 
-                    elif valid_option == 2:
+                    elif valid_index == 2:
                         print_task_table(task_manager.get_tasks())
                         handle_post_view_options(task_manager)
-                    elif valid_option == 3:
+                    elif valid_index == 3:
                         return
                     else:
                         return
@@ -273,7 +297,7 @@ def handle_complete(task_manager):
             else:
                 print("Action cancelled")
         else:
-            if valid_option != "":
+            if valid_index != "":
                 print("Invalid index. No tasks completed")
             return
 

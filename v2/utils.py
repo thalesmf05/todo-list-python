@@ -18,61 +18,68 @@ def pad_cell(text, width):
     return " " * left + text + " " * right
 
 def validate_single_input(user_input, max_index, min_index):
+    """Convert the input to an integer and ensure it is within bounds."""
+
     try:
-        user_input = int(user_input)
-        if not (min_index <= user_input <= max_index):
+        value = int(user_input)
+        if not (min_index <= value <= max_index):
             return None
-    except ValueError: 
+    except ValueError:
         return None
-    
-    return user_input
+
+    return value
            
 def get_valid_single_input(max_index, min_index):
-    first_try = True 
+    """Prompt the user for a single valid option within the given range."""
 
-    while True:        
-        if first_try:
-            user_input = input(f"Choose one option: ").strip()
-        
-        if user_input == "":
+    user_entry = None
+
+    while True:
+        if user_entry is None:
+            user_entry = input("Choose one option: ").strip()
+
+        if user_entry == "":
             print("You must enter something!")
+            user_entry = None
             continue
 
-        
-        index = validate_single_input(user_input,max_index, min_index)
+        index = validate_single_input(user_entry, max_index, min_index)
         if index is not None:
             return index
-        else: 
+        else:
             print(f"Invalid input. Please enter a number between {min_index}-{max_index}")
             retry = input("Press ENTER to go back or type another option: ").strip()
             if retry == "":
                 return None
-            user_input = retry
-            first_try = False
+            user_entry = retry
 
 
 def get_multiple_inputs(task_manager):
+    """Collect and validate multiple comma-separated options."""
+
     valid_inputs = []
     invalid_inputs = []
     while True:
-        raw_user_input = input(f"Choose one or more options, separated by commas: ").strip()
-            
-        if not raw_user_input:
-            print("You must enter something. ")
-        
-        user_input = raw_user_input.split(",")
-                
-        for i in user_input:  
-            index = validate_single_input(i.strip(), len(task_manager.get_tasks()), 1)
+        raw_input = input("Choose one or more options, separated by commas: ").strip()
+
+        if not raw_input:
+            print("You must enter something!")
+            continue
+
+        options = raw_input.split(",")
+        max_index = len(task_manager.get_tasks())
+
+        for option in options:
+            index = validate_single_input(option.strip(), max_index, 1)
 
             if index is not None:
                 valid_inputs.append(index)
             else:
-                invalid_inputs.append(i.strip())
-             
+                invalid_inputs.append(option.strip())
+
         break
-    
-    return valid_inputs,invalid_inputs
+
+    return valid_inputs, invalid_inputs
 
     
 

@@ -254,27 +254,44 @@ def handle_remove(task_manager):
     Handles removing tasks from the list.
     Confirms removal and offers next steps after each removal.
     """
-    RED = "\033[31m"
-    RESET = "\033[0m"
-    removed_tasks = []
     while True:
+        if not task_manager.get_tasks():
+            print("No tasks to remove.")
+            return
         valid_inputs, invalid_inputs = get_multiple_inputs(task_manager)
+        valid_inputs = sorted(set(valid_inputs))
+        invalid_inputs = sorted(set(invalid_inputs))
 
-        selected_tasks = [task_manager.tasks[i - 1] for i in valid_inputs]
-        print_task_text_table(selected_tasks, "TASKS TO REMOVE")  
+        if valid_inputs:
+            selected_tasks = [task_manager.tasks[i - 1] for i in valid_inputs]
+            print_task_text_table(selected_tasks, "TASKS TO REMOVE")
 
-        confirm = input("Press ENTER to delete tasks or type any key to cancel: ")
-        if confirm == "":
-            for idx in valid_inputs:
-                removed = task_manager.remove_task(idx)
-                if removed is not None: 
-                    removed_tasks.append(removed)
-            task_manager.save_to_file(json_path)
+            confirm = input("Press ENTER to delete tasks or type any key to cancel: ")
+            if confirm == "":
+                for idx in sorted(valid_inputs, reverse=True):
+                    task_manager.remove_task(idx)
+                task_manager.save_to_file(json_path)
+                print(f"Tasks {', '.join(str(i) for i in valid_inputs)} were deleted.")
+            else:
+                print("Action cancelled")
+        else:
+            print("No valid tasks selected.")
 
+        if invalid_inputs:
+            print(f"Invalid inputs: {', '.join(invalid_inputs)}")
 
+        option = show_options(None, ["Remove more", "View list", "Back to main menu"])
+        valid_index = get_valid_single_input(3, 1)
 
-           
-           
+        if valid_index == 1:
+            continue
+        elif valid_index == 2:
+            print_task_table(task_manager.get_tasks())
+            handle_post_view_options(task_manager)
+            return
+        elif valid_index == 3:
+            return
+
 
 def handle_complete(task_manager):
     """
@@ -283,39 +300,54 @@ def handle_complete(task_manager):
     """
     GREEN = "\033[92m"
     RESET = "\033[0m"
-    
-    while True: 
-        index = get_valid_single_input(len(task_manager.get_tasks()), 1)
-        if index is not None:
-            task_to_complete = task_manager.tasks[index - 1]
-            confirm = input(f"Press ENTER to {GREEN}complete{RESET} '{task_to_complete.description}', or any other key to cancel: ")
+
+    while True:
+        if not task_manager.get_tasks():
+            print("No tasks to complete.")
+            return
+        valid_inputs, invalid_inputs = get_multiple_inputs(task_manager)
+        valid_inputs = sorted(set(valid_inputs))
+        invalid_inputs = sorted(set(invalid_inputs))
+
+        if valid_inputs:
+            selected_tasks = [task_manager.tasks[i - 1] for i in valid_inputs]
+            print_task_text_table(selected_tasks, "TASKS TO COMPLETE")
+
+            confirm = input(f"Press ENTER to {GREEN}complete{RESET} tasks or type any key to cancel: ")
             if confirm == "":
-                completed_task = task_manager.complete_task(index)
-                if completed_task is not None:
-                    print(f"{task_to_complete.description} completed successfully!!")
-                    task_manager.save_to_file(json_path)
-                    
-                    option = show_options(None,["Complete another", "View list", "Back to main menu"])
-                    valid_index = get_valid_single_input(3,1)
-
-                    if valid_index == 1:
+                already_done = []
+                completed_now = []
+                for idx in valid_inputs:
+                    task = task_manager.tasks[idx - 1]
+                    if task.completed:
+                        already_done.append(str(idx))
                         continue
-
-                    elif valid_index == 2:
-                        print_task_table(task_manager.get_tasks())
-                        handle_post_view_options(task_manager)
-                    elif valid_index == 3:
-                        return
-                    else:
-                        return
-                    
-                else:
-                    print("Unexpected error. Action cancelled ")
+                    completed_task = task_manager.complete_task(idx)
+                    if completed_task is not None:
+                        completed_now.append(str(idx))
+                task_manager.save_to_file(json_path)
+                if already_done:
+                    print(f"Tasks {', '.join(already_done)} already completed.")
+                if completed_now:
+                    print(f"{GREEN}Tasks {', '.join(completed_now)} completed!{RESET}")
             else:
                 print("Action cancelled")
         else:
-            if valid_index != "":
-                print("Invalid index. No tasks completed")
+            print("No valid tasks selected.")
+
+        if invalid_inputs:
+            print(f"Invalid inputs: {', '.join(invalid_inputs)}")
+
+        option = show_options(None, ["Complete more", "View list", "Back to main menu"])
+        valid_index = get_valid_single_input(3, 1)
+
+        if valid_index == 1:
+            continue
+        elif valid_index == 2:
+            print_task_table(task_manager.get_tasks())
+            handle_post_view_options(task_manager)
+            return
+        elif valid_index == 3:
             return
 
 def handle_exit(task_manager):

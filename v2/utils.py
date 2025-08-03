@@ -1,6 +1,4 @@
-from curses import raw
 import datetime
-from encodings.punycode import T 
 from task import Task
 from task_manager import TaskManager
 from wcwidth import wcswidth 
@@ -52,32 +50,26 @@ def get_valid_single_input(max_index, min_index):
             user_input = retry
             first_try = False
 
-        
-        
-        
 
 def get_multiple_inputs(task_manager):
     valid_inputs = []
     invalid_inputs = []
     while True:
-        try:
-            raw_user_input = input(f"Choose one or more options, separated by commas: ").strip()
+        raw_user_input = input(f"Choose one or more options, separated by commas: ").strip()
             
-            if not raw_user_input:
-                print("You must enter something. ")
+        if not raw_user_input:
+            print("You must enter something. ")
         
-            user_input = raw_user_input.split(",")
+        user_input = raw_user_input.split(",")
                 
-            for i in user_input:
-                index = validate_single_input(i.strip(), len(task_manager.get_tasks()), 1)
+        for i in user_input:  
+            index = validate_single_input(i.strip(), len(task_manager.get_tasks()), 1)
 
-                if index is not None:
-                    valid_inputs.append(index)
-                else:
-                    invalid_inputs.append(i)
-        except: 
-            print("Unexpected error")      
-
+            if index is not None:
+                valid_inputs.append(index)
+            else:
+                invalid_inputs.append(i.strip())
+             
         break
     
     return valid_inputs,invalid_inputs
@@ -104,7 +96,7 @@ def show_main_menu(task_manager):
     while True:
         to_do_list = task_manager.get_tasks()
         option = show_options("----------- Menu -----------",["View Tasks", "Add Task", "Complete Task", "Remove Task", "Exit"])
-        valid_index = get_valid_single_input(task_manager, 5, 1)
+        valid_index = get_valid_single_input(5, 1)
         if valid_index == 1:
             print_task_table(task_manager.get_tasks())
             handle_post_view_options(task_manager)
@@ -158,12 +150,47 @@ def print_task_table(tasks):
             print("|" + "|".join(cells) + "|")
     print("+" + "+".join("-" * w for w in col_widths) + "+")
 
+def print_task_text_table(tasks, title):
+    """Prints a simplified table showing only task descriptions.
+
+    This is used when the app needs to display a subset of tasks to the
+    user, for example, when confirming multiple removals or completions.
+    It keeps the same visual style as ``print_task_table`` but only shows
+    the task text.
+    """
+    # Determine column widths dynamically so longer task names fit nicely
+    max_task_width = max((wcswidth(t.description) for t in tasks), default=len("Task"))
+    col_widths = [4, max(max_task_width, len("Task"))]
+    table_width = sum(col_widths) + len(col_widths) + 1
+
+    print("\n" + title.center(table_width))
+    print("+" + "+".join("-" * w for w in col_widths) + "+")
+
+    headers = ["No", "Task"]
+    header_cells = [pad_cell(h, w) for h, w in zip(headers, col_widths)]
+    print("|" + "|".join(header_cells) + "|")
+
+    print("+" + "+".join("-" * w for w in col_widths) + "+")
+
+    if not tasks:
+        empty = "No tasks found."
+        print("|" + pad_cell(empty, table_width - 2) + "|")
+    else:
+        for idx, task in enumerate(tasks, 1):
+            cells = [
+                pad_cell(str(idx), col_widths[0]),
+                pad_cell(task.description, col_widths[1]),
+            ]
+            print("|" + "|".join(cells) + "|")
+
+    print("+" + "+".join("-" * w for w in col_widths) + "+")
+
 def handle_post_view_options(task_manager):
     """
     Presents post-list options to the user after viewing the table.
     """
     option = show_options(None,["Add task","Complete Task", "Remove Task", "Go back"])
-    valid_index = get_valid_single_input(task_manager, 4, 1)
+    valid_index = get_valid_single_input(4, 1)
     if valid_index == 1:
         handle_add(task_manager)
     elif valid_index == 2:
@@ -203,8 +230,8 @@ def handle_add(task_manager):
             return
 
         while True:
-            option = show_options(None, "What next? ", ["Add another", "View list", "Back to main menu"])
-            valid_index = validate_single_input(option, 3, 1, "after_add_task")
+            option = show_options(None, ["Add another", "View list", "Back to main menu"])
+            valid_index = get_valid_single_input(3, 1)
 
             if valid_index == 1:
                 break  # Start loop again to add another
@@ -222,40 +249,25 @@ def handle_remove(task_manager):
     """
     RED = "\033[31m"
     RESET = "\033[0m"
-    
+    removed_tasks = []
     while True:
-        max_index = len(task_manager.get_tasks())
-        validate_multiple_indices(task_manager,"multiple_inputs")
-        
-        if index is not None:
-            task_to_remove = task_manager.tasks[index - 1]
-            confirm = input(f"Press ENTER to {RED}delete{RESET} '{task_to_remove.description}', or any other key to cancel: ")
-            if confirm == "":
-                removed_task = task_manager.remove_task(index)
-                if removed_task is not None:
-                    print(f"{task_to_remove.description} was removed!")
+        valid_inputs, invalid_inputs = get_multiple_inputs(task_manager)
 
-                    option = show_options(None, "What Next? ",["Remove another", "View list", "Back to main menu"])
-                    valid_index = validate_single_input(option, 3, 1, "after_remove_task")
+        selected_tasks = [task_manager.tasks[i - 1] for i in valid_inputs]
+        print_task_text_table(selected_tasks, "TASKS TO REMOVE")  
 
-                    if valid_index == 1:
-                        continue
-                    elif valid_index == 2:
-                        print_task_table(task_manager.get_tasks())
-                        handle_post_view_options(task_manager)
-                    elif valid_index == 3:
-                        return
-                    else:
-                        return
+        confirm = input("Press ENTER to delete tasks or type any key to cancel: ")
+        if confirm == "":
+            for idx in valid_inputs:
+                removed = task_manager.remove_task(idx)
+                if removed is not None: 
+                    removed_tasks.append(removed)
+            task_manager.save_to_file(json_path)
 
-                else:
-                    print("Unexpected error. Removal cancelled")
-            else:
-                print("Deletion cancelled")
-        else:
-            if valid_index != "":
-                print("Invalid index. No tasks deleted")
-            return
+
+
+           
+           
 
 def handle_complete(task_manager):
     """
@@ -266,9 +278,7 @@ def handle_complete(task_manager):
     RESET = "\033[0m"
     
     while True: 
-        max_index = len(task_manager.get_tasks())
-        complete_input = input("Choose one to mark as completed: ") #TODO: support marking multiple at once
-        index = validate_single_input(complete_input, max_index, 1, "complete")
+        index = get_valid_single_input(len(task_manager.get_tasks()), 1)
         if index is not None:
             task_to_complete = task_manager.tasks[index - 1]
             confirm = input(f"Press ENTER to {GREEN}complete{RESET} '{task_to_complete.description}', or any other key to cancel: ")
@@ -278,8 +288,8 @@ def handle_complete(task_manager):
                     print(f"{task_to_complete.description} completed successfully!!")
                     task_manager.save_to_file(json_path)
                     
-                    option = show_options(None, "What Next? ",["Complete another", "View list", "Back to main menu"])
-                    valid_index = validate_single_input(option, 3, 1, "after_remove_task")
+                    option = show_options(None,["Complete another", "View list", "Back to main menu"])
+                    valid_index = get_valid_single_input(3,1)
 
                     if valid_index == 1:
                         continue
